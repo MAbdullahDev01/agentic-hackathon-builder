@@ -1,19 +1,24 @@
-from dotenv import load_dotenv
+from config import settings
 from groq import Groq
-import os
+import time
 
-load_dotenv()
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-client = Groq(api_key=GROQ_API_KEY)
+client = Groq(api_key=settings.GROQ_API_KEY)
 
 class Agent:
     def __init__(self, name: str, system_prompt: str) -> None:
         self.name = name
         self.system_prompt = system_prompt
 
-    def run(self, task: str):
+    def __save(self, response) -> None:
+            with open("research.md", "w", encoding="utf-8") as file:
+                file.write(response)
+            print("Research successfully saved.")
+
+    def run(self, task: str) -> None:
         print(f"{self.name} is running...")
+
+        time.sleep(2)
+
         response = client.chat.completions.create(
             messages=[
                 {
@@ -25,6 +30,15 @@ class Agent:
                     "content": task
                 }
             ],
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-20b",
+            max_tokens=4096,
         )
         print(response.choices[0].message.content)
+        self.__save(response.choices[0].message.content)
+
+file_path: str = input("Provide file path for task: ")
+with open(file_path, "r", encoding="utf-8") as file:
+    task = file.read()
+
+research_agent = Agent("Research Agent", settings.researcher_system_prompt)
+research_agent.run(task)
