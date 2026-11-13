@@ -1,7 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    GROQ_API_KEY: str
+    GROQ_API_KEY: str = ""
+    TAVILY_API_KEY: str = ""
+    MAX_ITERATIONS: int = 5
 
     researcher_system_prompt: str = """
         You are the lead research agent for a hackathon team, providing them a competitive edge. Your primary task is to extensively research on the topic provided and return a detailed report of what you found based on the operating principles provided.
