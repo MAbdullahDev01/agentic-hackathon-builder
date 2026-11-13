@@ -4,7 +4,7 @@ import json
 from src.config import settings
 from src.tools.registry import tools, tool_registry
 
-if not settings.GROQ_API_KEY:
+if settings.GROQ_API_KEY == "":
     raise ValueError("API key not found.")
 
 try:
@@ -35,6 +35,8 @@ class Agent:
         self.add_message("user", task)
 
         for iteration in range(settings.MAX_ITERATIONS):
+            # For logging while running
+            # print("Model called")
             response = client.chat.completions.create(
                 messages=self.messages,
                 model="openai/gpt-oss-20b",
