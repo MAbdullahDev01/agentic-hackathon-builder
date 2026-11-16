@@ -1,78 +1,73 @@
-from groq import Groq, GroqError
-from groq.types.chat import ChatCompletionMessage
-import json
+from google import genai
+from google.genai import types
 from src.config import settings
-from src.tools.registry import tools, tool_registry
+from src.tools.registry import tool_registry
 
-if settings.GROQ_API_KEY == "":
-    raise ValueError("API key not found.")
+if settings.GEMINI_API_KEY == "":
+    raise ValueError("GEMINI_API_KEY not found. Please set it in the .env file.")
 
-try:
-    client = Groq(api_key=settings.GROQ_API_KEY)
-except GroqError as e:
-    print(f"Failed to create groq client: {e}")
+# Initialize the official Google GenAI client
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 class Agent:
     def __init__(self, name: str, system_prompt: str) -> None:
         self.name = name
         self.system_prompt = system_prompt
-        self.tools = tools
         self.tool_registry = tool_registry
-        self.messages: list[dict[str, str | ChatCompletionMessage]] = [{"role": "system", "content": self.system_prompt}]
+        
+        # Extract the actual Python functions from your registry to pass as tools
+        self.tools_list = list(self.tool_registry.values())
+        
+        # Initialize a Gemini chat session which manages conversation history automatically
+        self.chat = client.chats.create(
+            model="gemini-4-hydrogen",
+            config=types.GenerateContentConfig(
+                system_instruction=self.system_prompt,
+                tools=self.tools_list,
+                max_output_tokens=settings.MAX_OUTPUT_TOKENS,
+            )
+        )
 
-    def save(self, response) -> None:
+    def save(self, response_text: str) -> None:
         with open("research.md", "w", encoding="utf-8") as file:
-            file.write(response)
+            file.write(response_text)
         print("Research successfully saved.")
 
-    def add_message(self, role: str, message: str | ChatCompletionMessage):
-        self.messages.append({"role": role, "content": message})
-    
-    def run(self, task: str) -> ChatCompletionMessage:
-
+    def run(self, task: str):
         print(f"{self.name} is running...")
 
-        self.add_message("user", task)
+        # Send initial user task to the chat session
+        response = self.chat.send_message(task)
 
         for iteration in range(settings.MAX_ITERATIONS):
-            # For logging while running
-            # print("Model called")
-            response = client.chat.completions.create(
-                messages=self.messages,
-                model="openai/gpt-oss-20b",
-                max_tokens=4096,
-                tools=self.tools,
-            ).choices[0].message
+            print("Model called")
 
-            # Check whether the model requested tools
-            if response.tool_calls:
+            # Check if Gemini requested any tool/function calls
+            if response.function_calls:
+                for function_call in response.function_calls:
+                    tool_name = function_call.name
+                    # Arguments are returned as a standard dictionary
+                    arguments = dict(function_call.args)
 
-                # Preserve the assistant's tool-call message
-                self.messages.append(response.model_dump(exclude_none=True))
+                    print(f"Executing tool: {tool_name} with args: {arguments}")
 
-
-                for tool_call in response.tool_calls:
-                    tool_name = tool_call.function.name
-                    arguments = json.loads(tool_call.function.arguments)
-
-                    # Validate the requested tool
+                    # Validate and execute the requested tool
                     if tool_name not in self.tool_registry:
                         result = f"Error: Unknown tool '{tool_name}'"
                     else:
-                        # Execute the Python function
                         result = self.tool_registry[tool_name](**arguments)
 
-                    # Return the result to the model
-                    self.messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": str(result)
-                    })
-
+                    # Send the tool execution result back to Gemini through the chat session
+                    response = self.chat.send_message(
+                        types.Part.from_function_response(
+                            name=tool_name,
+                            response={"result": result}
+                        )
+                    )
             else:
-                if response.content is not None:
-                    self.messages.append(response.model_dump(exclude_none=True))
-                    self.save(response.content)
+                # No more tools called; we have our final text output
+                if response.text is not None:
+                    self.save(response.text)
                 return response
         else:
             raise RuntimeError("Agent exceeded maximum iterations.")

@@ -1,30 +1,10 @@
+from collections.abc import Callable
 from src.tools.web_search import web_search
+from typing import Any
 
-tools: list[dict] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "web_search",
-            "description": "Search for information on the web",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Web search query"
-                    },
-                    "max_query": {
-                        "type": "integer",
-                        "description": "Maximum number of results (1-5)"
-                    }
-                },
-                "required": ["query"],
-                "additional_properties": False
-            }
-        }
-    },
-]
-
-tool_registry = {
+tool_registry: dict[str, Callable[..., Any]] = {
     "web_search" : web_search,
 }
+
+if __name__ == "__main__":
+    pass
