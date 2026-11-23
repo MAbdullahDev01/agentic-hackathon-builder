@@ -28,12 +28,12 @@ class Agent:
             )
         )
 
-    def save(self, response_text: str) -> None:
-        with open("research.md", "w", encoding="utf-8") as file:
+    def save(self, file_path: str, response_text: str) -> None:
+        with open(file_path, "w", encoding="utf-8") as file:
             file.write(response_text)
         print("Research successfully saved.")
 
-    def run(self, task: str):
+    def run(self, task: str, file_path: str) -> types.ChatMessage:
         print(f"{self.name} is running...")
 
         # Send initial user task to the chat session
@@ -67,7 +67,7 @@ class Agent:
             else:
                 # No more tools called; we have our final text output
                 if response.text is not None:
-                    self.save(response.text)
+                    self.save(file_path, response.text)
                 return response
         else:
             raise RuntimeError("Agent exceeded maximum iterations.")
