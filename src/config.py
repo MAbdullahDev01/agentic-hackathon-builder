@@ -1,7 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    GROQ_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
     TAVILY_API_KEY: str = ""
     MAX_ITERATIONS: int = 5
@@ -44,4 +43,4 @@ class Settings(BaseSettings):
 settings = Settings()
 
 if __name__ == "__main__":
-    print(f"Loaded settings: {settings.model_dump()}")
+    pass
