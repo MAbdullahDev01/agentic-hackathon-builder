@@ -33,7 +33,7 @@ class Agent:
             file.write(response_text)
         print("Research successfully saved.")
 
-    def run(self, task: str, file_path: str) -> types.ChatMessage:
+    def run(self, task: str, file_path: str):
         print(f"{self.name} is running...")
 
         # Send initial user task to the chat session
