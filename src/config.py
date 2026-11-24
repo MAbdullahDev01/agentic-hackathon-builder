@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    GEMINI_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
     TAVILY_API_KEY: str = ""
     MAX_ITERATIONS: int = 5
     MAX_OUTPUT_TOKENS: int = 32768
